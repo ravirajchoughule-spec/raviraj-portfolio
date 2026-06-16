@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ravirajchoughule-spec.github.io/raviraj-portfolio/sitemap.xml
