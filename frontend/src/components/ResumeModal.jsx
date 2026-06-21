@@ -12,9 +12,11 @@ const ResumeModal = ({ isOpen, onClose }) => {
   // Reset states on close/open
   useEffect(() => {
     if (isOpen) {
-      setZoomLevel(1.0);
-      setIsFullscreen(false);
-      setIsLoading(true);
+      requestAnimationFrame(() => {
+        setZoomLevel(1.0);
+        setIsFullscreen(false);
+        setIsLoading(true);
+      });
     }
   }, [isOpen]);
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { Send, CheckCircle2, AlertCircle, Download, Check, Eye, Mail, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
+import { Send, CheckCircle2, AlertCircle, Download, Check, Eye, Mail, Phone, X } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 
 const GithubIcon = ({ size = 18, ...props }) => (
@@ -26,6 +26,21 @@ const Contact = ({ onViewResume }) => {
   const [honeypot, setHoneypot] = useState('');
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [hoveredIdx, setHoveredIdx] = useState(null);
+
+  const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+
+  const showToastMessage = (type, message) => {
+    setToast({ show: true, type, message });
+  };
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast({ show: false, type: 'success', message: '' });
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   const handleDownloadResume = (e) => {
     if (e) e.preventDefault();
@@ -102,6 +117,7 @@ const Contact = ({ onViewResume }) => {
         setStatus('success');
         setFormData({ name: '', email: '', subject: '', message: '' });
         setHoneypot('');
+        showToastMessage('success', 'Thank you for contacting Raviraj Choughule. Your message has been sent successfully.');
       }, 1000);
       return;
     }
@@ -110,10 +126,14 @@ const Contact = ({ onViewResume }) => {
     const now = Date.now();
     if (now - lastSubmitTime < 10000) {
       setErrors({ ...errors, submit: "Please wait a few seconds before sending another message." });
+      showToastMessage('error', 'Rate limit: Please wait a few seconds.');
       return;
     }
 
-    if (!validate()) return;
+    if (!validate()) {
+      showToastMessage('error', 'Please fill in all required fields correctly.');
+      return;
+    }
 
     setStatus('loading');
     setLastSubmitTime(now);
@@ -122,70 +142,34 @@ const Contact = ({ onViewResume }) => {
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-    // Check configuration
-    const isConfigured = serviceId && templateId && publicKey && 
-                         !serviceId.includes('your_emailjs_') && 
-                         !templateId.includes('your_emailjs_') && 
-                         !publicKey.includes('your_emailjs_');
+    // EmailJS debugging logs
+    console.log("Service ID:", serviceId);
+    console.log("Template ID:", templateId);
+    console.log("Public Key:", publicKey);
 
-    const sendToDatabaseFallback = () => {
-      fetch('http://localhost:5000/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            setStatus('success');
-            setFormData({ name: '', email: '', subject: '', message: '' });
-          } else {
-            setStatus('error');
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to submit contact message to API fallback:", err);
-          setStatus('error');
-        });
-    };
-
-    if (isConfigured) {
-      emailjs.send(
-        serviceId,
-        templateId,
-        {
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
-        },
-        publicKey
-      )
-      .then((res) => {
-        console.log("EmailJS delivered successfully:", res.status, res.text);
-        
-        // Audit log in background database
-        fetch('http://localhost:5000/api/contact', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        }).catch((err) => console.warn("Failed to audit contact message in SQLite:", err));
-
-        setStatus('success');
-        setFormData({ name: '', email: '', subject: '', message: '' });
-      })
-      .catch((err) => {
-        console.error("EmailJS submission error, trying backend database fallback:", err);
-        sendToDatabaseFallback();
-      });
-    } else {
-      console.log("EmailJS keys are not configured or still placeholders. Logging directly to SQLite database.");
-      sendToDatabaseFallback();
-    }
+    emailjs.send(
+      serviceId,
+      templateId,
+      {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        date_time: new Date().toLocaleString()
+      },
+      publicKey
+    )
+    .then((res) => {
+      console.log("EmailJS delivered successfully:", res.status, res.text);
+      setStatus('success');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      showToastMessage('success', 'Thank you for contacting Raviraj Choughule. Your message has been sent successfully.');
+    })
+    .catch((err) => {
+      console.error("EmailJS delivery error:", err);
+      setStatus('error');
+      showToastMessage('error', 'Failed to send message. Please try again.');
+    });
   };
 
   return (
@@ -477,7 +461,7 @@ const Contact = ({ onViewResume }) => {
                   className="flex items-center gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/2 px-4 py-3.5 text-xs font-semibold text-emerald-400 font-mono"
                 >
                   <CheckCircle2 size={14} className="flex-shrink-0" />
-                  <span>Thank you for contacting me. Your message has been sent successfully. I will get back to you soon.</span>
+                  <span>Thank you for contacting Raviraj Choughule. Your message has been sent successfully.</span>
                 </motion.div>
               )}
               {status === 'error' && (
@@ -497,6 +481,42 @@ const Contact = ({ onViewResume }) => {
         </div>
 
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-8 right-8 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border backdrop-blur-md shadow-2xl ${
+              toast.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/20 text-red-400'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0 animate-pulse" />
+            ) : (
+              <AlertCircle size={18} className="text-red-400 flex-shrink-0 animate-pulse" />
+            )}
+            <div className="flex flex-col text-left">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-wider opacity-60">
+                {toast.type === 'success' ? 'SUCCESS' : 'ERROR'}
+              </span>
+              <span className="text-xs font-semibold font-sans mt-0.5 leading-snug">
+                {toast.message}
+              </span>
+            </div>
+            <button
+              onClick={() => setToast({ show: false, type: 'success', message: '' })}
+              className="ml-4 text-slate-400 hover:text-white transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

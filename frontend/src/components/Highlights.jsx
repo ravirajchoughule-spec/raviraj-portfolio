@@ -12,7 +12,7 @@ const CountUp = ({ value, duration = 1.5 }) => {
 
     const numericMatch = value.match(/\d+/);
     if (!numericMatch) {
-      setCount(value);
+      requestAnimationFrame(() => setCount(value));
       return;
     }
 
