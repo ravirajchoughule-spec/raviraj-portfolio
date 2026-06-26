@@ -238,7 +238,7 @@ const Projects = () => {
 
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/projects')
+    Promise.reject(new Error("Local static data"))
       .then((res) => res.json())
       .then((data) => {
         // Enforce mock details for rich case studies for all 5 projects
@@ -609,8 +609,7 @@ const Projects = () => {
 
         setProjects(enriched);
       })
-      .catch((err) => {
-        console.error("Failed to fetch projects from Express API, falling back to static seeding", err);
+      .catch(() => {
         setProjects([
           {
             name: "Medical Billing & Pharmacy Management System",

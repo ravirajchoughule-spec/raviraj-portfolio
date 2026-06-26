@@ -1,6 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring, useMotionTemplate } from 'framer-motion';
 import { ArrowRight, Download, Mail, Check, Eye } from 'lucide-react';
+
+const Cursor = () => (
+  <motion.span
+    initial={{ opacity: 1 }}
+    animate={{ opacity: [1, 0, 1] }}
+    transition={{
+      duration: 1,
+      repeat: Infinity,
+      ease: "steps(2, start)"
+    }}
+    className="ml-1 inline-block font-sans font-normal text-slate-400 select-none"
+  >
+    |
+  </motion.span>
+);
 
 const LinkedinIcon = ({ size = 16, ...props }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -12,6 +27,51 @@ const LinkedinIcon = ({ size = 16, ...props }) => (
 
 const Hero = ({ onViewResume }) => {
   const [downloadState, setDownloadState] = useState('idle'); // idle, downloading, success
+
+  const line1Full = "Hi, I'm Raviraj Choughule";
+  const line2Full = "Java Full Stack Developer";
+
+  const [line1, setLine1] = useState("");
+  const [line2, setLine2] = useState("");
+  const [phase, setPhase] = useState("typing1"); // typing1, typing2, deleting2, deleting1
+
+  useEffect(() => {
+    let timer;
+    if (phase === "typing1") {
+      timer = setTimeout(() => {
+        if (line1.length < line1Full.length) {
+          setLine1(line1Full.substring(0, line1.length + 1));
+        } else {
+          setPhase("typing2");
+        }
+      }, 60);
+    } else if (phase === "typing2") {
+      timer = setTimeout(() => {
+        if (line2.length < line2Full.length) {
+          setLine2(line2Full.substring(0, line2.length + 1));
+        } else {
+          setPhase("deleting2");
+        }
+      }, 60);
+    } else if (phase === "deleting2") {
+      timer = setTimeout(() => {
+        if (line2.length > 0) {
+          setLine2(line2.substring(0, line2.length - 1));
+        } else {
+          setPhase("deleting1");
+        }
+      }, 30);
+    } else if (phase === "deleting1") {
+      timer = setTimeout(() => {
+        if (line1.length > 0) {
+          setLine1(line1.substring(0, line1.length - 1));
+        } else {
+          setPhase("typing1");
+        }
+      }, 30);
+    }
+    return () => clearTimeout(timer);
+  }, [line1, line2, phase]);
 
   const handleDownloadResume = (e) => {
     if (e) e.preventDefault();
@@ -120,8 +180,17 @@ const Hero = ({ onViewResume }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, cubicBezier: [0.16, 1, 0.3, 1] }}
           >
-            <span className="inline-block font-mono text-xs tracking-widest text-slate-500 uppercase mb-4">
-              Hi, I'm <span className="gradient-text-animated gradient-hover-glow font-bold cursor-default select-none">Raviraj Choughule</span>
+            <span className="inline-block font-mono text-xs tracking-widest text-slate-500 uppercase mb-4 min-h-[16px]">
+              {line1.substring(0, 8)}
+              {line1.length > 8 && (
+                <span 
+                  className="gradient-text-animated gradient-hover-glow font-bold cursor-default select-none"
+                  style={{ fontSize: '1.3em' }}
+                >
+                  {line1.substring(8)}
+                </span>
+              )}
+              {(phase === 'typing1' || phase === 'deleting1') && <Cursor />}
             </span>
           </motion.div>
 
@@ -131,7 +200,8 @@ const Hero = ({ onViewResume }) => {
             transition={{ duration: 0.7, delay: 0.1, cubicBezier: [0.16, 1, 0.3, 1] }}
             className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.15] mb-2"
           >
-            <span className="heading-theme-gradient">Java Full Stack Developer</span> <br />
+            <span className="heading-theme-gradient">{line2 || "\u200B"}</span>
+            {(phase === 'typing2' || phase === 'deleting2') && <Cursor />} <br />
             <span className="text-slate-400 font-sans text-xl sm:text-2xl font-normal tracking-wide block mt-3 max-w-2xl leading-relaxed">
               Computer Engineering Graduate
             </span>
